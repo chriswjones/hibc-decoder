@@ -4,34 +4,9 @@
 // To change the template use AppCode | Preferences | File Templates.
 //
 
-
 #import "HIBC.h"
 
-
-@interface HIBC ()
-
-+ (HIBC *)hibcForSecondaryString:(NSString *)secondary isConcatenated:(BOOL)isConcatenated;
-
-+ (NSDate *)dateFromDateString:(NSString *)string;
-
-+ (NSString *)substringFromDateString:(NSString *)string;
-
-@end
-
-
-@implementation HIBC {
-
-@private
-    NSString *_labelerIdentificationCode;
-    NSString *_productCatalogueNumber;
-    NSString *_unitOfMeasure;
-    NSString *_checkCharacter;
-    NSString *_linkCharacter;
-    NSDate *_date;
-    NSString *_quantity;
-    NSString *_lot;
-    NSString *_serial;
-}
+@implementation HIBC
 @synthesize labelerIdentificationCode = _labelerIdentificationCode;
 @synthesize productCatalogueNumber = _productCatalogueNumber;
 @synthesize unitOfMeasure = _unitOfMeasure;
@@ -48,9 +23,10 @@
     // trim off starting and trailing "*" characters, but keep it if it is a check digit
     if ([[barcode substringToIndex:1] isEqualToString:@"*"]) {
         barcode = [barcode substringFromIndex:1];
-        if ([[barcode substringFromIndex:[barcode length] - 1] isEqualToString:@"*"]) {
-            barcode = [barcode substringWithRange:NSMakeRange(0, [barcode length] - 1)];
-        }
+    }
+
+    if ([[barcode substringFromIndex:[barcode length] - 1] isEqualToString:@"*"]) {
+        barcode = [barcode substringWithRange:NSMakeRange(0, [barcode length] - 1)];
     }
 
     // Check if "+" is first char, if not, its not HIBC
@@ -73,11 +49,11 @@
         }
     }
 
-    char lastChar = [barcode characterAtIndex:[barcode length]-1];
+    unichar lastChar = [barcode characterAtIndex:[barcode length] - 1];
     if (lastChar == '/') {
         if ([ar2 count] == 1) {
-           first = [first stringByAppendingString:@"/"];
-        }else if ([ar2 count] > 1) {
+            first = [first stringByAppendingString:@"/"];
+        } else if ([ar2 count] > 1) {
             second = [second stringByAppendingString:@"/"];
         }
     }
@@ -90,7 +66,7 @@
 
     if ([array count] == 1) {
 
-        // Standard Barcode - Product and Lot/Serial are on two different barcode labels
+        // Standard Barcode - Product and Lot/Serial are on two different barcodeText labels
 
         NSCharacterSet *letters = [NSCharacterSet letterCharacterSet];
         NSCharacterSet *firstLetter = [NSCharacterSet characterSetWithCharactersInString:[barcode substringToIndex:1]];
@@ -121,7 +97,7 @@
         }
     } else if ([array count] == 2) {
 
-        // Concatenated Barcode - Product and Lot/Serial are on a single barcode separated by "/"
+        // Concatenated Barcode - Product and Lot/Serial are on a single barcodeText separated by "/"
 
         // primary
 
@@ -148,13 +124,21 @@
     return hibc;
 }
 
+- (BOOL)isLinkedToSecondBarcode:(HIBC *)secondBarcode {
+    if (secondBarcode.linkCharacter && _checkCharacter) {
+        return [secondBarcode.linkCharacter isEqualToString:_checkCharacter];
+    } else {
+        return NO;
+    }
+}
+
 #pragma mark - Helpers
 
 + (HIBC *)hibcForSecondaryString:(NSString *)secondary isConcatenated:(BOOL)isConcatenated {
 
-    int lotIdxSubraction = 2;
+    int lotIdxSubtraction = 2;
     if (isConcatenated) {
-        lotIdxSubraction = 1;
+        lotIdxSubtraction = 1;
     }
 
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
@@ -175,22 +159,22 @@
         secondary = [secondary substringFromIndex:5];
         hibc.linkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 2, 1)];
         hibc.checkCharacter = [secondary substringFromIndex:1];
-        secondary = [secondary substringWithRange:NSMakeRange(0, [secondary length] - lotIdxSubraction)];
+        secondary = [secondary substringWithRange:NSMakeRange(0, [secondary length] - lotIdxSubtraction)];
         hibc.lot = secondary;
     } else if ([[secondary substringToIndex:1] isEqualToString:@"$"] && [alphanumeric isSupersetOfSet:secondChar]) {
-        hibc.lot = [secondary substringWithRange:NSMakeRange(1, [secondary length] - lotIdxSubraction - 1)];
+        hibc.lot = [secondary substringWithRange:NSMakeRange(1, [secondary length] - lotIdxSubtraction - 1)];
         hibc.checkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 1, 1)];
         hibc.linkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 2, 1)];
     } else if ([[secondary substringToIndex:2] isEqualToString:@"$+"] && [alphanumeric isSupersetOfSet:thirdChar]) {
         secondary = [secondary stringByReplacingOccurrencesOfString:@"$" withString:@""];
         secondary = [secondary stringByReplacingOccurrencesOfString:@"+" withString:@""];
-        hibc.serial = [secondary substringWithRange:NSMakeRange(0, [secondary length] - lotIdxSubraction)];
+        hibc.serial = [secondary substringWithRange:NSMakeRange(0, [secondary length] - lotIdxSubtraction)];
         hibc.checkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 1, 1)];
         hibc.linkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 2, 1)];
     } else if ([[secondary substringToIndex:2] isEqualToString:@"$$"] && [alphanumeric isSupersetOfSet:thirdChar]) {
         secondary = [secondary stringByReplacingOccurrencesOfString:@"$" withString:@""];
         hibc.checkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 1, 1)];
-        hibc.linkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - lotIdxSubraction, 1)];
+        hibc.linkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - lotIdxSubtraction, 1)];
         secondary = [secondary substringWithRange:NSMakeRange(0, [secondary length] - 2)];
 
         // quantity
@@ -225,7 +209,7 @@
 
         hibc.checkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 1, 1)];
         hibc.linkCharacter = [secondary substringWithRange:NSMakeRange([secondary length] - 2, 1)];
-        secondary = [secondary substringWithRange:NSMakeRange(0, [secondary length] - lotIdxSubraction)];
+        secondary = [secondary substringWithRange:NSMakeRange(0, [secondary length] - lotIdxSubtraction)];
 
         hibc.date = [HIBC dateFromDateString:secondary];
         secondary = [HIBC substringFromDateString:secondary];
@@ -242,44 +226,37 @@
     int i = [[string substringToIndex:1] intValue];
     switch (i) {
         case 0:
-        case 1:
-        {
+        case 1: {
             NSString *dateString = [string substringToIndex:4];
             dateFormatter.dateFormat = @"MMyy";
             return [dateFormatter dateFromString:dateString];
         }
-        case 2:
-        {
+        case 2: {
             NSString *dateString = [string substringWithRange:NSMakeRange(1, 6)];
             dateFormatter.dateFormat = @"MMddyy";
             return [dateFormatter dateFromString:dateString];
         }
-        case 3:
-        {
+        case 3: {
             NSString *dateString = [string substringWithRange:NSMakeRange(1, 6)];
             dateFormatter.dateFormat = @"yyMMdd";
             return [dateFormatter dateFromString:dateString];
         }
-        case 4:
-        {
+        case 4: {
             NSString *dateString = [string substringWithRange:NSMakeRange(1, 8)];
             dateFormatter.dateFormat = @"yyMMddHH";
             return [dateFormatter dateFromString:dateString];
         }
-        case 5:
-        {
+        case 5: {
             NSString *dateString = [string substringWithRange:NSMakeRange(1, 5)];
             dateFormatter.dateFormat = @"yyDDD";
             return [dateFormatter dateFromString:dateString];
         }
-        case 6:
-        {
+        case 6: {
             NSString *dateString = [string substringWithRange:NSMakeRange(1, 7)];
             dateFormatter.dateFormat = @"yyDDDHH";
             return [dateFormatter dateFromString:dateString];
         }
-        case 7:
-        {
+        case 7: {
             return nil;
         }
         default:
@@ -309,6 +286,5 @@
             return @"";
     }
 }
-
 
 @end

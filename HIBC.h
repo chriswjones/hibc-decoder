@@ -7,7 +7,6 @@
 
 #import <Foundation/Foundation.h>
 
-
 @interface HIBC : NSObject
 
 @property(nonatomic, strong) NSString *labelerIdentificationCode;
@@ -21,5 +20,7 @@
 @property(nonatomic, strong) NSString *serial;
 
 + (HIBC *)decode:(NSString *)barcode;
+
+- (BOOL)isLinkedToSecondBarcode:(HIBC *)secondBarcode;
 
 @end
