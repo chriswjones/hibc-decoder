@@ -18,6 +18,10 @@
 @synthesize serial = _serial;
 
 + (HIBC *)decode:(NSString *)barcode {
+    if (!barcode || [barcode length] == 0) {
+        return nil;
+    }
+
     HIBC *hibc = [[HIBC alloc] init];
 
     // trim off starting and trailing "*" characters, but keep it if it is a check digit
@@ -25,7 +29,7 @@
         barcode = [barcode substringFromIndex:1];
     }
 
-    if ([[barcode substringFromIndex:[barcode length] - 1] isEqualToString:@"*"]) {
+    if ([barcode length] >= 1 && [[barcode substringFromIndex:[barcode length] - 1] isEqualToString:@"*"]) {
         barcode = [barcode substringWithRange:NSMakeRange(0, [barcode length] - 1)];
     }
 
